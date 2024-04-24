@@ -88,12 +88,14 @@ def test_read_user(client):
         'email': 'test@test.com',
         'id': 1,
     }  # Assert
-    
+
+
 def test_read_user_not_found(client):
     response = client.get('/users/0')  # Act
 
     assert response.status_code == HTTPStatus.NOT_FOUND  # Assert
     assert response.json() == {'detail': 'User not found'}  # Assert
+
 
 def test_delete_user(client):
     response = client.delete('/users/1')  # Act
