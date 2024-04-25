@@ -11,20 +11,23 @@ from zoneinfo import ZoneInfo
 from fast_zero.database import get_session
 from fast_zero.models import User
 from fast_zero.schemas import TokenData
+from fast_zero.settings import Settings
 
-SECRET_KEY = 'your-secret-key'
-ALGORITHM = 'HS256'
-ACESS_TOKEN_EXPIRE_MINUTES = 30
+settings = Settings()
+
 pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='token')
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='auth/token')
+
 
 def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.now(tz=ZoneInfo('UTC')) + timedelta(
-        minutes=ACESS_TOKEN_EXPIRE_MINUTES
-        )
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    )
     to_encode.update({'exp': expire})
-    encoded_jwt = encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
     return encoded_jwt
 
 
@@ -38,28 +41,30 @@ def verify_password(plain_password: str, hashed_password: str):
 
 async def get_current_user(
     session: Session = Depends(get_session),
-    token: str = Depends(oauth2_scheme)
+    token: str = Depends(oauth2_scheme),
 ):
     crenditals_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail='Could not validate credentials',
         headers={'WWW-Authenticate': 'Bearer'},
     )
-    
-    try :
-        payload = decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+
+    try:
+        payload = decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
         username: str = payload.get('sub')
         if not username:
             raise crenditals_exception
         token_data = TokenData(username=username)
     except DecodeError:
         raise crenditals_exception
-    
+
     user = session.scalar(
         select(User).where(User.email == token_data.username)
     )
-    
+
     if user is None:
         raise crenditals_exception
-    
+
     return user

@@ -53,3 +53,4 @@ run = 'uvicorn fast_zero.app:app --reload'
 pre-test = 'task lint'
 test = 'pytest -s -x --cov=fast_zero -vv'
 post_test = 'coverage html'
+
